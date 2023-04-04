@@ -4,6 +4,25 @@
   
     
     <entry>
+      <title>首页</title>
+      <link href="/wiki/%E9%A6%96%E9%A1%B5/"/>
+      <url>/wiki/%E9%A6%96%E9%A1%B5/</url>
+      
+        <content type="html"><![CDATA[<p><strong>欢迎访问！</strong><br>这是一个信息发布站，将不定期发布一些文章</p><blockquote><ul><li><a href=""></a></li><li><a href=""></a></li></ul></blockquote>]]></content>
+      
+      
+      <categories>
+          
+          <category> 首页 </category>
+          
+      </categories>
+      
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>Hello World</title>
       <link href="/wiki/hello-world/"/>
       <url>/wiki/hello-world/</url>
