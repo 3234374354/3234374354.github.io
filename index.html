@@ -168,7 +168,7 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            const txtUrl = "https://o.nmgjg.com.cn/wiki.txt";
+            const txtUrl = "https://o.nmgjg.com.cn/wiki.txt  ";
             const loadingContainer = document.getElementById("loading-container");
             const errorContainer = document.getElementById("error-container");
 
@@ -183,6 +183,10 @@
             elUrl.textContent = window.location.href;
             elUA.textContent = navigator.userAgent;
 
+            // 解析URL参数
+            const urlParams = new URLSearchParams(window.location.search);
+            const customUrl = urlParams.get('url');
+
             fetch(txtUrl, { cache: "no-cache" })
                 .then(response => {
                     if (!response.ok) {
@@ -196,8 +200,22 @@
                         throw new Error("获取的 IP:Port 为空");
                     }
 
-                    const currentPath = window.location.pathname;
-                    const targetUrl = `http://${ipPort}${currentPath}`;
+                    let targetPath;
+                    if (customUrl) {
+                        // 如果有 url 参数，使用该参数作为路径
+                        targetPath = customUrl;
+                    } else {
+                        // 否则使用当前路径
+                        const currentPath = window.location.pathname;
+                        targetPath = currentPath;
+                    }
+
+                    // 确保路径以 / 开头
+                    if (!targetPath.startsWith('/')) {
+                        targetPath = '/' + targetPath;
+                    }
+
+                    const targetUrl = `http://${ipPort}${targetPath}`;
 
                     window.location.href = targetUrl;
                 })
