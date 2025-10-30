@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +16,7 @@
             align-items: center;
             min-height: 100vh;
             color: #333;
-            line-height: 1.5;
+            line-height: 1.6;
         }
 
         .container {
@@ -23,7 +24,7 @@
             padding: 24px;
             background: white;
             border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
             max-width: 700px;
             width: 92%;
             margin: 16px;
@@ -46,19 +47,14 @@
             margin: 16px 0;
             font-size: 15px;
             color: #444;
-            line-height: 1.6;
         }
 
-        /* Markdown 样式 */
+        /* Marked 默认样式微调 */
         #readme-area h1,
         #readme-area h2,
         #readme-area h3 {
             margin: 14px 0 10px;
             color: #2c3e50;
-        }
-
-        #readme-area strong {
-            font-weight: 600;
         }
 
         #readme-area ul,
@@ -85,7 +81,6 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: 500;
-            transition: background 0.2s;
         }
 
         .confirm-btn:hover:not(:disabled) {
@@ -135,9 +130,11 @@
             .container {
                 padding: 20px 16px;
             }
+
             h2 {
                 font-size: 20px;
             }
+
             #readme-area {
                 font-size: 14px;
                 padding: 14px;
@@ -145,7 +142,11 @@
         }
     </style>
 </head>
+
 <body>
+    <!-- 引入 marked -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
     <div class="container" id="main-container">
         <h2>客客帮文档库</h2>
         <div id="readme-area">加载中...</div>
@@ -167,130 +168,38 @@
 
     <script>
         let redirectAttempted = false;
-        const txtUrl = "https://o.nmgjg.com.cn/wiki.txt";
-        const readmeUrl = "https://o.nmgjg.com.cn/wiki_readme.md";
+        const TXT_URL = "https://o.nmgjg.com.cn/wiki.txt";
+        const README_URL = "https://o.nmgjg.com.cn/wiki_readme.md";
 
-        // 简单 Markdown 渲染
-        function simpleMarkdown(text) {
-            let html = text
-                .replace(/\r\n/g, '\n')
-                .replace(/\n{3,}/g, '\n\n')
-                .split('\n');
-
-            let inList = false;
-            let listType = '';
-            let result = [];
-
-            for (let line of html) {
-                line = line.trim();
-
-                const ulMatch = line.match(/^[-*+]\s+(.*)/);
-                const olMatch = line.match(/^(\d+)\.\s+(.*)/);
-                const headingMatch = line.match(/^(#{1,3})\s+(.*)/);
-
-                if (headingMatch) {
-                    const level = headingMatch[1].length;
-                    result.push(`<h${level}>${escapeHtml(headingMatch[2])}</h${level}>`);
-                    inList = false;
-                } else if (ulMatch) {
-                    if (!inList || listType !== 'ul') {
-                        if (inList) result.push(`</${listType}>`);
-                        result.push('<ul>');
-                        inList = true;
-                        listType = 'ul';
-                    }
-                    result.push(`<li>${formatInline(ulMatch[1])}</li>`);
-                } else if (olMatch) {
-                    if (!inList || listType !== 'ol') {
-                        if (inList) result.push(`</${listType}>`);
-                        result.push('<ol>');
-                        inList = true;
-                        listType = 'ol';
-                    }
-                    result.push(`<li>${formatInline(olMatch[2])}</li>`);
-                } else {
-                    if (inList) {
-                        result.push(`</${listType}>`);
-                        inList = false;
-                    }
-                    if (line === '') {
-                        result.push('<p></p>');
-                    } else {
-                        result.push(`<p>${formatInline(line)}</p>`);
-                    }
-                }
-            }
-
-            if (inList) result.push(`</${listType}>`);
-
-            return result.join('\n');
-        }
-
-        function formatInline(str) {
-            return escapeHtml(str)
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>');
-        }
-
-        function escapeHtml(text) {
-            const map = {
-                '&': '&amp;',
-                '<': '<',
-                '>': '>',
-                '"': '&quot;',
-                "'": '&#039;'
-            };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        // 获取要跳转的路径
+        // 获取目标路径：优先使用 ?url=xxx，否则用当前 pathname
         function getTargetPath() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let path = urlParams.get('url');
+            const params = new URLSearchParams(window.location.search);
+            let path = params.get('url');
             if (path !== null) {
-                // 确保以 / 开头
-                if (!path.startsWith('/')) path = '/' + path;
-                return path;
+                return path.startsWith('/') ? path : '/' + path;
             }
-            // 否则使用当前路径
             return window.location.pathname;
         }
 
-        // 页面加载
-        document.addEventListener("DOMContentLoaded", function () {
-            document.getElementById("debug-time").textContent = new Date().toLocaleString('zh-CN');
-            document.getElementById("debug-url").textContent = window.location.href;
+        // 跳转函数
+        function doRedirect(url) {
+            redirectAttempted = true;
+            window.location.href = url;
+            setTimeout(() => {
+                if (redirectAttempted) {
+                    showError("跳转未生效，请检查网络或地址");
+                }
+            }, 5000);
+        }
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const hasUrlParam = urlParams.has('url');
+        // 显示错误
+        function showError(msg) {
+            document.getElementById("debug-error").textContent = msg;
+            document.getElementById("main-container").style.display = "none";
+            document.getElementById("error-container").style.display = "block";
+        }
 
-            // 无论有没有 url 参数，都先尝试加载 README（除非你希望有 url 参数时跳过 README？）
-            // 根据你之前要求：“文档说明加载页面就不必了” + “有 url 参数直接跳转” → 但注意：现在不能直接跳转！
-            // 因为必须先读 wiki.txt 才知道域名！
-            // 所以：即使有 url 参数，也必须走 redirect 流程，但可以跳过 README 显示。
-
-            if (hasUrlParam) {
-                // 有 url 参数：跳过 README，直接开始跳转流程
-                startRedirect();
-            } else {
-                // 无 url 参数：显示 README
-                fetch(readmeUrl, { cache: "no-cache" })
-                    .then(response => {
-                        if (!response.ok) throw new Error('README 加载失败');
-                        return response.text();
-                    })
-                    .then(text => {
-                        const html = simpleMarkdown(text);
-                        document.getElementById("readme-area").innerHTML = html;
-                        document.getElementById("confirm-btn").style.display = "inline-block";
-                    })
-                    .catch(() => {
-                        // README 失败 → 直接跳转
-                        startRedirect();
-                    });
-            }
-        });
-
+        // 开始跳转流程（读取 wiki.txt 并拼接路径）
         function startRedirect() {
             const btn = document.getElementById("confirm-btn");
             if (btn.style.display !== "none") {
@@ -300,41 +209,52 @@
                 document.getElementById("readme-area").textContent = "跳转中...";
             }
 
-            fetch(txtUrl, { cache: "no-cache" })
-                .then(response => {
-                    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                    return response.text();
+            fetch(TXT_URL, { cache: "no-cache" })
+                .then(res => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.text();
                 })
                 .then(text => {
                     const ipPort = text.trim();
                     if (!ipPort) throw new Error("IP:Port 为空");
-
-                    const targetPath = getTargetPath(); // 这里会正确获取 ?url=xxx 的值
-                    const targetUrl = `http://${ipPort}${targetPath}`;
-
+                    const targetUrl = `http://${ipPort}${getTargetPath()}`;
                     doRedirect(targetUrl);
                 })
-                .catch(error => {
-                    showError(error.toString());
+                .catch(err => {
+                    showError(err.message || String(err));
                 });
         }
 
-        function doRedirect(url) {
-            redirectAttempted = true;
-            window.location.href = url;
+        // 页面初始化
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("debug-time").textContent = new Date().toLocaleString('zh-CN');
+            document.getElementById("debug-url").textContent = window.location.href;
 
-            setTimeout(() => {
-                if (redirectAttempted) {
-                    showError("跳转未生效，请检查网络或地址");
-                }
-            }, 5000);
-        }
+            const hasUrlParam = new URLSearchParams(window.location.search).has('url');
 
-        function showError(msg) {
-            document.getElementById("debug-error").textContent = msg;
-            document.getElementById("main-container").style.display = "none";
-            document.getElementById("error-container").style.display = "block";
-        }
+            if (hasUrlParam) {
+                // 有 url 参数：跳过 README，直接跳转
+                startRedirect();
+            } else {
+                // 无参数：加载并渲染 README
+                fetch(README_URL, { cache: "no-cache" })
+                    .then(res => {
+                        if (!res.ok) throw new Error('加载失败');
+                        return res.text();
+                    })
+                    .then(mdText => {
+                        // 使用 marked 渲染
+                        const html = marked.parse(mdText, { gfm: true, breaks: true });
+                        document.getElementById("readme-area").innerHTML = html;
+                        document.getElementById("confirm-btn").style.display = "inline-block";
+                    })
+                    .catch(() => {
+                        // README 加载失败：静默跳转
+                        startRedirect();
+                    });
+            }
+        });
     </script>
 </body>
+
 </html>
