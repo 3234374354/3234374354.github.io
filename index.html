@@ -176,7 +176,14 @@
             const params = new URLSearchParams(window.location.search);
             let path = params.get('url');
             if (path !== null) {
-                return path.startsWith('/') ? path : '/' + path;
+                // 检查是否是完整URL格式，如果是则提取路径部分
+                try {
+                    const url = new URL(path);
+                    return url.pathname + url.search + url.hash;
+                } catch (e) {
+                    // 如果不是完整URL，则按原逻辑处理
+                    return path.startsWith('/') ? path : '/' + path;
+                }
             }
             return window.location.pathname;
         }
